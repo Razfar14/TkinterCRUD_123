@@ -44,6 +44,20 @@ def readsiswa():
     con.close()
     return rows
 
+def updateSiswa(id: int, name: str, NBa: int, NF: int, NBi: int, Prediksi: str):
+    con = koneksi()
+    cur = con.cursor()
+    cur.execute("UPDATE Calaon_Mahasiswa SET name=?, NBa=?, NF=?, NBi=?, Prediksi_Prodi=? WHERE id=?", (name, NBa, NF, NBi, Prediksi, id))
+    con.commit()
+    con.close()
+
+def deleteSiswa(id: int):
+    con = koneksi()
+    cur = con.cursor()
+    cur.execute("DELETE FROM Calaon_Mahasiswa WHERE id=?", (id,))
+    con.commit()
+    con.close()
+
 
 create_table()
 
@@ -80,6 +94,10 @@ class Mahasiswa(tk.Tk):
         self.btn_add.pack(side="left", padx=6)
         self.btn_refresh = tk.Button(btn_frame, text="Refresh", width=10, command=self.read_data)
         self.btn_refresh.pack(side="left", padx=6)
+        self.btn_update = tk.Button(btn_frame, text="Perbarui", width=10, command=self.update_data)
+        self.btn_update.pack(side="left", padx=6)
+        self.btn_delete = tk.Button(btn_frame, text="Hapus", width=10, command=self.delete_data)
+        self.btn_delete.pack(side="left", padx=6)
 
         cols = ("id", "name", "NBa", "NF", "NBi","Prediksi Prodi")
         self.tree = ttk.Treeview(self, columns=cols, show="headings", height=12)
@@ -133,7 +151,7 @@ class Mahasiswa(tk.Tk):
         val = self.validate_inputs()
         if not val:
             return
-        name, NBa, NF, NBi, Prediksi = val
+        name, NBa, NF, NBi, Prediksi, = val
         try:
             new_id = insertsiswa(name, NBa, NF, NBi,Prediksi) 
             msg.showinfo("Sukses", f"Data disimpan (id={new_id})\n" f"Prediksi Prodi: {self.prediks_prodi(NBa, NF, NBi)}")
@@ -141,6 +159,44 @@ class Mahasiswa(tk.Tk):
             self.clear_inputs()
         except Exception as e:
             msg.showerror("DB Error", str(e))
+
+    def update_data(self):
+        sel = self.tree.selection()
+        if not sel:
+            msg.showwarning("Peringatan", "Pilih data yang akan diperbarui.")
+            return
+        item = self.tree.item(sel[0])
+        id = item["values"][0]
+        val = self.validate_inputs()
+        if not val:
+            return
+        name, NBa, NF, NBi, Prediksi = val
+        Prediksi = self.prediks_prodi(NBa, NF, NBi)
+        try:
+            updateSiswa(id, name, NBa, NF, NBi, Prediksi)
+            msg.showinfo("Sukses", f"Data dengan ID {id} telah diperbarui.\n" f"Prediksi Prodi: {Prediksi}")
+            self.read_data()
+            self.clear_inputs()
+        except Exception as e:
+            msg.showerror("DB Error", str(e))
+
+    def delete_data(self):
+      sel = self.tree.selection()
+      if not sel:
+          msg.showwarning("Peringatan", "Pilih data yang akan dihapus.")
+          return
+      item = self.tree.item(sel[0])
+      id = item["values"][0]
+      if not msg.askyesno("Konfirmasi", f"Yakin ingin menghapus data dengan ID {id}?"):
+          return
+      try:
+            deleteSiswa(id)
+            msg.showinfo("Sukses", f"Data dengan ID {id} telah dihapus.")
+            self.read_data()
+            self.clear_inputs()
+      except Exception as e:
+            msg.showerror("DB Error", str(e))
+    
 
     def on_tree_select(self, event):
         sel = self.tree.selection()
@@ -171,7 +227,7 @@ class Mahasiswa(tk.Tk):
         elif NBi >= NBa and NBi >= NF:
             return "Kedokteran"
         else:
-            return "Masuk Kemana Saja"  
+            return "Bisa Masuk Kemana Saja"  
 
 if __name__ == "__main__":
     app = Mahasiswa()
